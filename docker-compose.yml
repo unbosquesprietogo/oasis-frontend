@@ -1,0 +1,48 @@
+version: "3.9"
+services:
+  reactapp:
+    container_name: reactapp
+    build: ./inventario-react-app
+    expose:
+      - 5000
+    volumes:
+      - ./inventario-react-app:/usr/src/app
+  nginx:
+    build: ./nginx
+    expose:
+      - 80
+    links:
+      - reactapp
+      - nginx-proxy
+      - letsencrypt
+    environment: 
+      - VIRTUAL_HOST=oasisuniformes.site,www.oasisuniformes.site
+      - LETSENCRYPT_HOST=oasisuniformes.site,www.oasisuniformes.site
+    restart: always
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+        - /var/run/docker.sock:/tmp/docker.sock:ro
+        - certs:/etc/nginx/certs:ro
+        - vhostd:/etc/nginx/vhost.d
+        - html:/usr/share/nginx/html
+
+  letsencrypt:
+      image: jrcs/letsencrypt-nginx-proxy-companion
+      restart: always
+      environment:
+          - NGINX_PROXY_CONTAINER=nginx-proxy
+      volumes:
+        - certs:/etc/nginx/certs:rw
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        - vhostd:/etc/nginx/vhost.d
+        - html:/usr/share/nginx/html
+volumes:
+  certs:
+  html:
+  vhostd:
